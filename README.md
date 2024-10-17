@@ -1,21 +1,51 @@
-This is a Kotlin Multiplatform project targeting Android, iOS, Web, Desktop.
+# 前言
+本文是本人在使用 Jetpack-Compose 製作動畫時累積的一些心得，除了 Compose 相關的程式碼需要 Android/Kotlin 相關背景知識，其它的基本觀念對其他語言、平台也都受用。
 
-* `/composeApp` is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-    - `commonMain` is for code that’s common for all targets.
-    - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-      For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-      `iosMain` would be the right folder for such calls.
+# 動畫的本質
+```
+游移在 0 與 1 之間，展現複數自我譜成的詩篇。
+```
+動畫其實就是在描述一個起點到終點的變化，從0開始，類比地累加到1結束，在這有限範圍內展現每個階段的狀態，最後組成的連續狀態就是動畫。
 
-* `/iosApp` contains iOS applications. Even if you’re sharing your UI with Compose Multiplatform,
-  you need this entry point for your iOS app. This is also where you should add SwiftUI code for your project.
+# 動畫的播放方式
+動畫依據播放方式又分為兩種，一種是連續狀態加時間（duration），由時間來自動控制播放進度，另一種則是自行設定播放進度。
 
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html),
-[Compose Multiplatform](https://github.com/JetBrains/compose-multiplatform/#compose-multiplatform),
-[Kotlin/Wasm](https://kotl.in/wasm/)…
+## 連續狀態加時間
+設定一個時間，讓時間去驅動進度累加，進而自動地改變狀態，但它的進度只能單向前進。
 
-We would appreciate your feedback on Compose/Web and Kotlin/Wasm in the public Slack
-channel [#compose-web](https://slack-chats.kotlinlang.org/c/compose-web).
-If you face any issues, please report them on [GitHub](https://github.com/JetBrains/compose-multiplatform/issues).
+## 自行設定進度
+自己控制進度，例如用元件在畫面上的位置去控制，當元件在螢幕最下方時透明度設為50%，移動到螢幕正中間時透明度慢慢變成100%。
 
-You can open the web application by running the `:composeApp:wasmJsBrowserDevelopmentRun` Gradle task.
+## 計算動畫
+如果要計算動畫目前的進度，首先要找到動畫的起點與終點，假設以螢幕的最下方為起點（`from=screen.height`），螢幕的正中間為終點（`into=screen.height/2`），那只要取得目前的位置（`current`），就可以用這個公式計算出目前的進度。
+
+```
+progress = (current - from) / (into - from)
+```
+
+假設 screen.height=1920，則 from=1920，into=1920/2=960，計算結果如下表所示
+
+| current | from | into | 公式 | | progress |
+| --- | --- | --- | --- | --- | --- |
+| 1920 | 1920 | 960 | (1920-1920)/-960 | 0/-960 | 0 |
+| 1800 | 1920 | 960 | (1800-1920)/-960 | -120/-960 | 0.125 |
+| 1500 | 1920 | 960 | (1500-1920)/-960 | -420/-960 | 0.4375 |
+| 1200 | 1920 | 960 | (1200-1920)/-960 | -720/-960 | 0.75 |
+| 960  | 1920 | 960 | (960-1920)/-960 | -960/-960 | 1 |
+
+> (into-from)=960-1920 = -960
+
+當你已知的是其他的值而非 progress，公式也可以變成以下各種樣子，來計算出你所需要的值
+
+```
+current = from + progress * (into - from)
+
+from = (progress * into - current) / (progress - 1) // 注意當 progress=1 時需特殊處理以避免除以 0
+
+into = (current + from * (progress - 1)) / progess // 注意當 progress=0 時需特殊處理以避免除以 0
+```
+
+
+
+
+
