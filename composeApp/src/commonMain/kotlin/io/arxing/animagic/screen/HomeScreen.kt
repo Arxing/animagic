@@ -26,16 +26,6 @@ fun HomeScreen(
     modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp),
     verticalArrangement = Arrangement.spacedBy(10.dp),
   ) {
-    stickyHeader {
-      Button(
-        onClick = {
-          val i = Random.nextInt(1000)
-          component.texts += "加了: $i"
-        }
-      ) {
-        Text("點我點我~")
-      }
-    }
     items(items = component.texts) {
       Box(modifier = Modifier.size(300.dp, 100.dp).background(Color.Gray).clickable {
         component.onClickItem(it)

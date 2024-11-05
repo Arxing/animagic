@@ -4,8 +4,8 @@ import androidx.compose.runtime.compositionLocalOf
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
-import io.arxing.animagic.component.RootComponent.Route.DrawingScreen
-import io.arxing.animagic.component.RootComponent.Route.HomeScreen
+import io.arxing.animagic.component.RootComponent.Route.DrawingRoute
+import io.arxing.animagic.component.RootComponent.Route.HomeRoute
 import io.arxing.animagic.component.RootComponent.RouteChild.DrawingChild
 import io.arxing.animagic.component.RootComponent.RouteChild.HomeChild
 import kotlinx.serialization.Serializable
@@ -18,28 +18,30 @@ class RootComponent(componentContext: ComponentContext) : ComponentContext by co
   val stack: Value<ChildStack<*, RouteChild>> = childStack(
     source = navigation,
     serializer = Route.serializer(),
-    initialConfiguration = HomeScreen,
+    initialConfiguration = HomeRoute,
     handleBackButton = true,
-    childFactory = ::createChild,
+    childFactory = { route, _ ->
+      createChild(route)
+    },
   )
 
   private fun onBackPressed() {
     navigation.pop()
   }
 
-  private fun createChild(route: Route, componentContext: ComponentContext): RouteChild =
+  private fun createChild(route: Route): RouteChild =
     when (route) {
-      is HomeScreen -> {
+      is HomeRoute -> {
         HomeChild(
           HomeComponent(
             onClickItem = {
-              navigation.push(DrawingScreen(it))
+              navigation.push(DrawingRoute(it))
             },
           )
         )
       }
 
-      is DrawingScreen -> {
+      is DrawingRoute -> {
         DrawingChild(
           DrawingComponent(
             text = route.text,
@@ -59,9 +61,9 @@ class RootComponent(componentContext: ComponentContext) : ComponentContext by co
   @Serializable
   private sealed interface Route {
     @Serializable
-    data object HomeScreen : Route
+    data object HomeRoute : Route
 
     @Serializable
-    data class DrawingScreen(val text: String) : Route
+    data class DrawingRoute(val text: String) : Route
   }
 }

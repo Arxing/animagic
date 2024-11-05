@@ -57,6 +57,9 @@ kotlin {
     androidMain.dependencies {
       implementation(compose.preview)
       implementation(libs.androidx.activity.compose)
+      implementation(libs.koin.bom)
+      implementation(libs.koin.core)
+      implementation(libs.koin.android)
     }
     commonMain.dependencies {
       implementation(compose.runtime)
@@ -67,6 +70,8 @@ kotlin {
       implementation(compose.components.uiToolingPreview)
       implementation(libs.androidx.lifecycle.viewmodel)
       implementation(libs.androidx.lifecycle.runtime.compose)
+      implementation(libs.koin.bom)
+      implementation(libs.koin.core)
 
       implementation("com.arkivanov.decompose:decompose:3.1.0")
       implementation("com.arkivanov.decompose:extensions-compose:3.1.0")
