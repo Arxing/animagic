@@ -57,24 +57,24 @@ kotlin {
     androidMain.dependencies {
       implementation(compose.preview)
       implementation(libs.androidx.activity.compose)
-      implementation(libs.koin.bom)
       implementation(libs.koin.core)
       implementation(libs.koin.android)
     }
     commonMain.dependencies {
       implementation(compose.runtime)
       implementation(compose.foundation)
+      implementation(compose.animation)
       implementation(compose.material)
       implementation(compose.ui)
       implementation(compose.components.resources)
       implementation(compose.components.uiToolingPreview)
       implementation(libs.androidx.lifecycle.viewmodel)
       implementation(libs.androidx.lifecycle.runtime.compose)
-      implementation(libs.koin.bom)
       implementation(libs.koin.core)
-
-      implementation("com.arkivanov.decompose:decompose:3.1.0")
-      implementation("com.arkivanov.decompose:extensions-compose:3.1.0")
+      implementation(libs.precompose.core)
+      implementation(libs.precompose.viewModel)
+      implementation(libs.precompose.koin)
+      implementation("br.com.devsrsouza.compose.icons:feather:1.1.1")
     }
     desktopMain.dependencies {
       implementation(compose.desktop.currentOs)
