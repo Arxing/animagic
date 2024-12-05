@@ -1,145 +1,156 @@
 package io.arxing.animagic.screen
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.AnimationVector1D
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.util.VelocityTracker
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlin.math.absoluteValue
-import kotlin.math.roundToInt
+import kotlin.math.abs
 
 @Composable
 fun Demo2Screen() {
-  DraggableBoxWithInertiaKMP()
+  InertialBouncingBall()
 }
 
 @Composable
-fun DraggableBoxWithInertiaKMP() {
-  val boxOffsetX = remember { Animatable(0f) }
-  val boxOffsetY = remember { Animatable(0f) }
-  var velocityX by remember { mutableStateOf(0f) }
-  var velocityY by remember { mutableStateOf(0f) }
+fun InertialBouncingBall() {
+  val ballRadius = 50f // 球半徑
+  val friction = 0.98f // 慣性摩擦力
+  val reboundFactor = -0.8f // 反彈系數
 
-  val boxSize = 100.dp
-  var parentWidth by remember { mutableStateOf(0f) }
-  var parentHeight by remember { mutableStateOf(0f) }
-  val density = LocalDensity.current
+  // 記錄球的狀態
+  var ballPosition by remember { mutableStateOf(Offset(300f, 300f)) }
+  var velocity by remember { mutableStateOf(Offset.Zero) }
+  var isDragging by remember { mutableStateOf(false) }
 
-  Box(
-    Modifier
-      .fillMaxSize()
-      .background(Color.LightGray)
-      .onGloballyPositioned { coordinates ->
-        // 獲取父容器的寬高
-        val size = coordinates.size
-        parentWidth = size.width.toFloat()
-        parentHeight = size.height.toFloat()
-      }
-  ) {
-    Box(
-      Modifier
-        .offset {
-          IntOffset(
-            boxOffsetX.value.roundToInt(),
-            boxOffsetY.value.roundToInt()
-          )
+  // 畫布大小
+  var canvasSize by remember { mutableStateOf(Offset.Zero) }
+
+  // 慣性邏輯
+  LaunchedEffect(isDragging) {
+    while (!isDragging && velocity != Offset.Zero) {
+      withFrameMillis {
+        // 模擬摩擦力減速
+        velocity = Offset(velocity.x * friction, velocity.y * friction)
+
+        if (abs(velocity.x) < 1 && abs(velocity.y) < 1) {
+          velocity = Offset.Zero // 停止移動
         }
-        .size(boxSize)
-        .background(Color.Blue, shape = RoundedCornerShape(10.dp))
-        .pointerInput(Unit) {
-          detectDragGestures(
-            onDragStart = {
-              // 初始化速度
-              velocityX = 0f
-              velocityY = 0f
-            },
-            onDragEnd = {
-              // 進行慣性與邊界回彈處理
-              CoroutineScope(Dispatchers.Main).launch {
-                applyInertiaAndBounce(
-                  boxOffsetX,
-                  0f,
-                  parentWidth - with(density) { boxSize.toPx() },
-                  initialVelocity = velocityX
-                )
-                applyInertiaAndBounce(
-                  boxOffsetY,
-                  0f,
-                  parentHeight - with(density) { boxSize.toPx() },
-                  initialVelocity = velocityY
-                )
-              }
-            },
-            onDrag = { change, dragAmount ->
-              change.consume()
-              // 計算速度
-              velocityX = dragAmount.x * 0.2f
-              velocityY = dragAmount.y * 0.2f
 
-              CoroutineScope(Dispatchers.Main).launch {
-                boxOffsetX.snapTo(boxOffsetX.value + dragAmount.x)
-                boxOffsetY.snapTo(boxOffsetY.value + dragAmount.y)
-              }
-            }
-          )
+        // 更新球的位置
+        ballPosition = Offset(
+          (ballPosition.x + velocity.x).coerceIn(ballRadius, canvasSize.x - ballRadius),
+          (ballPosition.y + velocity.y).coerceIn(ballRadius, canvasSize.y - ballRadius)
+        )
+
+        // 邊界反彈邏輯
+        if (ballPosition.x <= ballRadius || ballPosition.x >= canvasSize.x - ballRadius) {
+          velocity = velocity.copy(x = velocity.x * reboundFactor)
         }
-    )
-  }
-}
-
-private suspend fun applyInertiaAndBounce(
-  offset: Animatable<Float, AnimationVector1D>,
-  minBound: Float,
-  maxBound: Float,
-  initialVelocity: Float,
-  velocityDecayFactor: Float = 0.98f, // 慣性衰減速度
-  reboundFactor: Float = 0.5f // 回彈速度衰減
-) {
-  var velocity = initialVelocity
-  while (velocity.absoluteValue > 0.5f) {
-    velocity *= velocityDecayFactor
-    val newOffset = offset.value + velocity
-
-    when {
-      newOffset < minBound -> {
-        // 左邊界碰撞
-        velocity = -velocity * reboundFactor
-        offset.snapTo(minBound)
-      }
-      newOffset > maxBound -> {
-        // 右邊界碰撞
-        velocity = -velocity * reboundFactor
-        offset.snapTo(maxBound)
-      }
-      else -> {
-        // 慣性滑動
-        offset.snapTo(newOffset)
+        if (ballPosition.y <= ballRadius || ballPosition.y >= canvasSize.y - ballRadius) {
+          velocity = velocity.copy(y = velocity.y * reboundFactor)
+        }
       }
     }
-    delay(16) // 每幀更新
+  }
+  Box(
+    modifier = Modifier.fillMaxSize(),
+  ) {
+    Canvas(
+      modifier = Modifier
+        .pointerInput(Unit) {
+          return@pointerInput awaitPointerEventScope {
+            while (true) {
+              // 等待按下事件
+              val event = awaitPointerEvent()
+
+              // 找到第一個按下的 Pointer
+              val pointer = event.changes.firstOrNull { it.pressed }
+              if (pointer != null) {
+                // 開始拖曳，記錄起始位置
+                var previousPosition = pointer.position
+
+                // 持續偵測拖曳
+                while (true) {
+                  val dragEvent = awaitPointerEvent()
+                  val dragChange = dragEvent.changes.find { it.id == pointer.id }
+
+                  if (dragChange == null || !dragChange.pressed) {
+                    // Pointer 被釋放或拖曳結束，立即觸發 onDragEnd
+                    println("Drag ended!")
+                    break
+                  }
+
+                  // 計算拖曳量
+                  val currentPosition = dragChange.position
+                  val dragAmount = currentPosition - previousPosition
+                  println("Dragging: $dragAmount")
+
+                  // 更新上一個位置
+                  previousPosition = currentPosition
+
+                  // 消耗事件，避免手勢衝突
+                  dragChange.consume()
+                }
+              }
+            }
+          }
+          detectDragGestures(
+            onDragStart = {
+              println("## onDragStart()")
+              isDragging = true
+            },
+            onDrag = { change, dragAmount ->
+              println("## onChange(), pos=${change.position}")
+              change.consume()
+              ballPosition = Offset(
+                (ballPosition.x + dragAmount.x).coerceIn(ballRadius, canvasSize.x - ballRadius),
+                (ballPosition.y + dragAmount.y).coerceIn(ballRadius, canvasSize.y - ballRadius)
+              )
+              // 更新速度：用拖曳距離模擬瞬時速度
+              velocity = dragAmount
+            },
+            onDragEnd = {
+              println("## onDragEnd()")
+              isDragging = false
+              // 立即更新一幀以消除延遲
+              ballPosition = Offset(
+                (ballPosition.x + velocity.x).coerceIn(ballRadius, canvasSize.x - ballRadius),
+                (ballPosition.y + velocity.y).coerceIn(ballRadius, canvasSize.y - ballRadius)
+              )
+            },
+            onDragCancel = {
+              println("## onDragCancel()")
+              isDragging = false
+            },
+          )
+        }
+        .fillMaxSize()
+    ) {
+      if (canvasSize == Offset.Zero) {
+        canvasSize = Offset(size.width, size.height) // 初始化畫布大小
+      }
+
+      // 繪製球
+      drawCircle(
+        color = Color.Red,
+        radius = ballRadius,
+        center = ballPosition
+      )
+    }
+
+    Text("isDragging=$isDragging")
   }
 }

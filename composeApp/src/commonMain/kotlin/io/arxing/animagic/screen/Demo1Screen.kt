@@ -55,7 +55,7 @@ fun Demo1Screen() {
   val speedRatio = remember { mutableFloatStateOf(0.5f) }
   val scope = rememberCoroutineScope()
 
-  val numPoints = calcCurrent(numPointsRatio.value, 100f, 3000f).toInt()
+  val numPoints = calcCurrent(numPointsRatio.value, 100f, 6000f).toInt()
   val numTurns = calcCurrent(numTurnsRatio.value, 1f, 30f).toInt()
   val speed = calcCurrent(speedRatio.value, 60_000f, 500f).toInt()
 
